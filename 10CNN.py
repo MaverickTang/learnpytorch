@@ -54,16 +54,16 @@ test_data = torchvision.datasets.MNIST(root='./mnist/', train=False) # 这里是
 test_x = torch.unsqueeze(test_data.test_data, dim=1).type(torch.FloatTensor)[:2000]/255.   # shape from (2000, 28, 28) to (2000, 1, 28, 28), value in range(0,1)
 test_y = test_data.test_labels[:2000]
 
-#%% 开始建立神经网络
+#%% 开始建立卷积层
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
         # 卷积层1
         self.conv1 = nn.Sequential(         # input shape (1, 28, 28)
-            nn.Conv2d(  # 卷积层，过滤器，作为一个信息收集器
+            nn.Conv2d(  # 卷积层，过滤器，作为一个信息收集器，会在图片上移动收集图片上的信息
                 # input height（图片高度（rgb有红绿蓝三个层））
                 in_channels=1,              
-                #输出的高度，（有多少个过滤器（过滤器为了提取出卷积出的信息属性）
+                #输出的高度，（有多少个过滤器（过滤器为了提取出卷积出的信息属性），同时提取16个特征
                 out_channels=16,            # n_filters
                 # filter的宽与高都是5个像素单，（5*5区域慢慢处理）
                 kernel_size=5,              # filter size
@@ -71,10 +71,11 @@ class CNN(nn.Module):
                 stride=1,                   # filter movement/step
                 # 把周围图片围上一圈0防止filter跳出
                 padding=2,                  # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if stride=1
-            ),                              # output shape (16, 28, 28)
+            ),                       # output shape (16, 28, 28)
             nn.ReLU(),                      # activation激活函数
             nn.MaxPool2d(kernel_size=2),    # choose max value in 2x2 area, output shape (16, 14, 14)
         )
+        #卷积层2
         self.conv2 = nn.Sequential(         # input shape (16, 14, 14)
             nn.Conv2d(16, 32, 5, 1, 2),     # output shape (32, 14, 14)
             nn.ReLU(),                      # activation
@@ -118,6 +119,7 @@ for epoch in range(EPOCH):
         optimizer.zero_grad()           # clear gradients for this training step
         loss.backward()                 # backpropagation, compute gradients
         optimizer.step()                # apply gradients
+        # 每50步查看正确率
         if step % 50 == 0:
             test_output, last_layer = cnn(test_x)
             pred_y = torch.max(test_output, 1)[1].data.numpy()
